@@ -455,10 +455,10 @@ function toB64(buf) { const u = new Uint8Array(buf); let s = ""; for (let i = 0;
 async function loadFont() {
   if (FONT) return FONT;
   const get = async n => { const r = await fetch(FONT_BASE + n); if (!r.ok) throw new Error("font " + r.status); return r.arrayBuffer(); };
-  const [r, b] = await Promise.all([get("TC-Regular.ttf"), get("TC-Bold.ttf")]);
+  const [r, b, cl] = await Promise.all([get("TC-Regular.ttf"), get("TC-Bold.ttf"), get("chars.txt")]);
   const f1 = new FontFace("tcpdf", r.slice(0), { weight: "400" }), f2 = new FontFace("tcpdf", b.slice(0), { weight: "700" });
   await Promise.all([f1.load(), f2.load()]); document.fonts.add(f1); document.fonts.add(f2);
-  FONT = { r: toB64(r), b: toB64(b) };
+  FONT = { r: toB64(r), b: toB64(b), set: new Set(new TextDecoder().decode(cl)) };
   return FONT;
 }
 // 把排好版的 DOM 頁面逐一畫進 PDF（文字為真正的文字，線條為向量）
@@ -513,6 +513,15 @@ function drawDom(pdf, root) {
       range.setStart(n, i); range.setEnd(n, i + 1);
       const rs = range.getClientRects(); if (!rs.length) continue;
       const rr = rs[0]; if (!rr.width && t[i] !== " ") continue;
+      if (t.charCodeAt(i) >= 0x80 && FONT && FONT.set && !FONT.set.has(t[i])) { // 字型裡沒有的罕見字：改用圖片補上
+        flush(); lastRight = null;
+        const k = 4, cv = document.createElement("canvas"); cv.width = Math.ceil(rr.width * k); cv.height = Math.ceil(rr.height * k);
+        const cx = cv.getContext("2d"); cx.scale(k, k); cx.fillStyle = cs.color;
+        cx.font = `${bold ? 700 : 400} ${fs}px "Noto Serif TC", "Noto Serif CJK TC", "PMingLiU", "Songti TC", serif`;
+        cx.textBaseline = "alphabetic"; cx.fillText(t[i], 0, rr.height * ASC);
+        pdf.addImage(cv.toDataURL("image/png"), "PNG", X(rr.left), Y(rr.top), rr.width * S, rr.height * S);
+        continue;
+      }
       if (rtop === null || Math.abs(rr.top - rtop) > 1 || Math.abs(rr.left - lastRight) > 1.5) { flush(); rx = rr.left; rtop = rr.top; rh = rr.height; }
       run += t[i]; lastRight = rr.right;
     }
