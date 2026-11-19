@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SNAP-IV 評量表（線上填寫）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root { --gray:#d6d6d6; --ink:#111; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#eceae6; font-family:"Noto Serif TC","PMingLiU","MingLiU",serif; color:var(--ink); }
+  .toolbar { position:sticky; top:0; z-index:10; display:flex; gap:8px; align-items:center; justify-content:center; flex-wrap:wrap;
+    padding:10px 12px; background:#2b2b2b; color:#fff; font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif; font-size:14px; }
+  .toolbar button { font:inherit; border:0; border-radius:8px; padding:9px 16px; cursor:pointer; }
+  .btn-main { background:#fff; color:#111; font-weight:600; }
+  .btn-sub { background:#4a4a4a; color:#fff; }
+  .toolbar button:disabled { opacity:.5; cursor:default; }
+  #status { width:100%; text-align:center; font-size:13px; color:#ddd; min-height:0; }
+  #status:empty { display:none; }
+
+  .wrap { padding:16px 8px 40px; }
+  .sheet { background:#fff; width:100%; max-width:794px; margin:0 auto; padding:44px 48px 40px; box-shadow:0 1px 6px rgba(0,0,0,.15); }
+  h1 { text-align:center; font-size:30px; margin:0 0 14px; letter-spacing:1px; color:#333; font-weight:700; font-family:system-ui,"Noto Sans TC",sans-serif; }
+  .author { text-align:center; font-size:15px; line-height:1.75; color:#333; }
+  .meta { font-size:16px; font-weight:700; margin-top:10px; line-height:1.9; }
+  .row-flex { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 16px; }
+  .line-input { border:0; border-bottom:1.5px solid #222; font:inherit; font-weight:400; background:transparent; padding:0 4px; outline:none; border-radius:0; color:var(--ink); }
+  .line-input:focus { background:#fff8d6; }
+  .w-name { width:220px; } .w-y { width:52px; text-align:center; } .w-md { width:36px; text-align:center; } .w-other { width:170px; }
+  .rel { display:inline-block; padding:0 6px; margin:0 4px; border:1.5px solid transparent; border-radius:999px; cursor:pointer; user-select:none; }
+  .rel.on { border-color:#111; }
+
+  table { width:100%; border-collapse:collapse; margin-top:14px; font-size:16px; }
+  th { font-weight:400; font-size:14px; line-height:1.5; padding:0 2px 4px; color:#333; width:44px; }
+  td { padding:3px 4px; vertical-align:top; line-height:1.45; }
+  td.no { width:28px; text-align:right; padding-right:4px; white-space:nowrap; }
+  td.txt { padding-left:2px; }
+  tr.g td.no, tr.g td.txt { background:var(--gray); }
+  td.sc { text-align:center; cursor:pointer; width:44px; -webkit-tap-highlight-color:transparent; }
+  td.odd01 { background:var(--gray); }
+  .num { display:inline-block; width:26px; height:24px; line-height:22px; border:1.5px solid transparent; border-radius:50%; }
+  td.sc.on .num { border-color:#111; font-weight:700; }
+  td.sc:hover .num { background:rgba(0,0,0,.06); }
+  tr.missing td.no { color:#c0392b; font-weight:700; }
+  tbody.ad tr:first-child td { border-top:1.5px dashed #555; }
+  tbody.ad tr:last-child td { border-bottom:1.5px dashed #555; }
+  tbody.ad tr td:first-child { border-left:1.5px dashed #555; }
+  tbody.ad tr td:last-child { border-right:1.5px dashed #555; }
+
+  .notes { margin-top:30px; font-size:16px; line-height:2.1; color:#333; }
+  .notes b { color:#111; }
+
+  .result { max-width:794px; margin:16px auto 0; background:#fff; padding:18px 20px; border-radius:6px; font-family:system-ui,"Noto Sans TC",sans-serif; font-size:14px; }
+  .result h2 { font-size:16px; margin:0 0 10px; }
+  .result table { margin:0; font-size:14px; }
+  .result td, .result th { border-bottom:1px solid #eee; padding:6px 4px; text-align:left; width:auto; }
+  .flag { color:#b03a2e; font-weight:700; }
+  .ok { color:#2d6a3e; }
+  .result h3 { font-size:14.5px; margin:16px 0 6px; }
+  .seg { display:inline-flex; border:1px solid #bbb; border-radius:8px; overflow:hidden; margin-left:6px; vertical-align:middle; }
+  .seg button { font:inherit; font-size:13px; border:0; background:#fff; padding:5px 10px; cursor:pointer; }
+  .seg button.on { background:#2b2b2b; color:#fff; }
+  .opt { display:flex; gap:6px; align-items:center; margin-top:12px; font-size:13.5px; }
+  .scorepage { background:#fff; width:794px; padding:56px 56px; font-family:"Noto Serif TC",serif; color:#111; }
+  .scorepage h2 { text-align:center; font-size:24px; margin:0 0 6px; font-family:system-ui,"Noto Sans TC",sans-serif; }
+  .scorepage .sub { text-align:center; font-size:14px; color:#444; margin-bottom:22px; }
+  .scorepage h3 { font-size:17px; margin:22px 0 8px; }
+  .scorepage table { font-size:15px; margin:0; }
+  .scorepage th, .scorepage td { border:1px solid #333; padding:7px 8px; text-align:center; width:auto; font-size:15px; color:#111; }
+  .scorepage th { background:#e6e6e6; font-weight:700; }
+  .scorepage td.l { text-align:left; }
+  .scorepage .foot { font-size:13px; line-height:1.8; color:#333; margin-top:22px; }
+  .hint { color:#666; font-size:12px; margin-top:8px; line-height:1.6; }
+
+  /* off-screen render target for PDF */
+  #render { position:fixed; left:-10000px; top:0; width:794px; }
+  #render .sheet { max-width:none; width:794px; box-shadow:none; }
+  #render .sheet { padding:36px 44px 28px; }
+  #render h1 { margin-bottom:8px; }
+  #render .meta { margin-top:6px; line-height:1.75; }
+  #render table { font-size:15px; margin-top:8px; }
+  #render td { padding:2px 4px; line-height:1.35; }
+  #render .notes { margin-top:16px; font-size:15px; line-height:1.85; }
+  .print-val { display:inline-block; border-bottom:1.5px solid #222; font-weight:400; padding:0 4px; text-align:center; vertical-align:bottom; min-height:1.4em; }
+
+  @media (max-width:600px) {
+    .sheet { padding:24px 12px 28px; }
+    h1 { font-size:24px; }
+    .author { font-size:12.5px; }
+    .meta { font-size:14.5px; }
+    table { font-size:14.5px; }
+    th { font-size:12px; width:34px; }
+    td.sc { width:34px; }
+    .num { width:24px; }
+    .w-name { width:150px; }
+    .notes { font-size:14px; line-height:1.9; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button class="btn-main" id="dl">下載 PDF</button>
+  <button class="btn-sub" id="clear">清除重填</button>
+  <div id="status"></div>
+</div>
+
+<div class="wrap">
+  <div class="sheet" id="sheet">
+    <h1>SNAP-IV 評量表</h1>
+    <div class="author">James M. Swanson, PhD<br>Translated by Susan Shur-Fen Gau (高淑芬), M.D., PhD</div>
+    <div class="meta">
+      <div class="row-flex">
+        <span>填表人姓名：<input class="line-input w-name" data-k="name"></span>
+        <span>填表時間：<input class="line-input w-y" data-k="y" inputmode="numeric">年<input class="line-input w-md" data-k="m" inputmode="numeric">月<input class="line-input w-md" data-k="d" inputmode="numeric">日</span>
+      </div>
+      <div>與受試者的關係(請圈選)：<span class="rel" data-rel="parent">父/母親</span><span class="rel" data-rel="teacher">老師</span><span class="rel" data-rel="other">其他監護人</span>，請說明<input class="line-input w-other" data-k="other"></div>
+      <div>請選擇一個代碼，最能表達在過去的一個星期中，您孩子的狀況…</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><td></td><td></td><th>完全<br>沒有</th><th>有一<br>點點</th><th>還算<br>不少</th><th>非常<br>的多</th></tr>
+      </thead>
+      <tbody class="ad" id="tb1"></tbody>
+      <tbody id="tb2"></tbody>
+    </table>
+
+    <div class="notes">
+      以上題目分 3 大區，第 1~9 題為注意力不足部分、第 10~18 題為過動、衝動部分、第 19~26 為反抗對立行為。<br>
+      <b>這 3 區分別至少要有 6、6、4 題以上勾選「還算不少」，才是醫師認為需要進行其他進一步篩檢的標準。</b>
+    </div>
+  </div>
+
+  <div class="result" id="result"></div>
+</div>
+
+<div id="render" aria-hidden="true"></div>
+
+<script>
+const ITEMS = [
+  "無法專注於細節的部分，或在做學校作業或其他活動時，出現粗心的錯誤",
+  "很難持續專注於工作或遊戲活動",
+  "看起來好像沒有在聽別人對他(她)說話的內容",
+  "沒有辦法遵循指示，也無法完成學校作業或家事(並不是由於對立性行為或無法了解指示的內容)",
+  "組織規劃工作及活動有困難",
+  "逃避，或表達不願意，或有困難於需要持續性動腦的工作(例如學校作業或家庭作業)",
+  "會弄丟工作上或活動所必須的東西(例如學校作業、鉛筆、書、工具或玩具)",
+  "很容易受外在刺激影響而分心",
+  "在日常生活中忘東忘西的",
+  "在座位上玩弄手腳或不好好坐著",
+  "在教室或其他必須持續坐著的場合，會任意離開座位",
+  "在不適當的場合，亂跑或爬高爬低",
+  "很難安靜地玩或參與休閒活動",
+  "總是一直在動或是像被馬達所驅動",
+  "話很多",
+  "在問題還沒問完前就急著回答",
+  "在遊戲中或團體活動中，無法排隊或等待輪流",
+  "打斷或干擾別人(例如：插嘴或打斷別人的遊戲)",
+  "發脾氣",
+  "與大人爭論",
+  "主動地反抗或拒絕大人的要求與規定",
+  "故意地做一些事去干擾別人",
+  "因自己犯的錯或不適當的行為而怪罪別人",
+  "易怒的或很容易被別人激怒",
+  "生氣的及怨恨的",
+  "惡意的或有報復心的"
+];
+const ans = new Array(26).fill(null);
+let rel = null;
+
+function buildRows() {
+  const tb1 = document.getElementById("tb1"), tb2 = document.getElementById("tb2");
+  ITEMS.forEach((t, i) => {
+    const tr = document.createElement("tr");
+    tr.dataset.i = i;
+    if (i % 2 === 0) tr.className = "g";
+    let h = `<td class="no">${i + 1}.</td><td class="txt">${t}</td>`;
+    for (let v = 0; v < 4; v++) {
+      const odd = i >= 18 && v < 2 ? " odd01" : "";
+      h += `<td class="sc${odd}" data-v="${v}"><span class="num">${v}</span></td>`;
+    }
+    tr.innerHTML = h;
+    (i < 18 ? tb1 : tb2).appendChild(tr);
+  });
+}
+buildRows();
+
+document.querySelector("table").addEventListener("click", e => {
+  const td = e.target.closest("td.sc");
+  if (!td) return;
+  const tr = td.parentElement, i = +tr.dataset.i, v = +td.dataset.v;
+  ans[i] = ans[i] === v ? null : v;
+  tr.querySelectorAll("td.sc").forEach(c => c.classList.toggle("on", +c.dataset.v === ans[i]));
+  tr.classList.remove("missing");
+  renderResult();
+});
+document.querySelectorAll(".rel").forEach(el => el.addEventListener("click", () => {
+  rel = rel === el.dataset.rel ? null : el.dataset.rel;
+  document.querySelectorAll(".rel").forEach(x => x.classList.toggle("on", x.dataset.rel === rel));
+}));
+
+const CUT = { // Swanson 暫定 5% 切截點（約 P95）
+  parent:  { ia:1.78, hi:1.44, c:1.67, odd:1.88 },
+  teacher: { ia:2.56, hi:1.78, c:2.00, odd:1.38 }
+};
+let rater = null; // 'parent' | 'teacher'; null = 跟隨圈選
+function raterNow() { return rater || (rel === "teacher" ? "teacher" : "parent"); }
+
+function calc() {
+  const sub = (a, b) => {
+    const seg = ans.slice(a, b);
+    const filled = seg.filter(x => x !== null);
+    const sum = filled.reduce((s, x) => s + x, 0);
+    return { n: b - a, filled: filled.length, sum, complete: filled.length === b - a,
+             mean: filled.length === b - a ? Math.round(sum / (b - a) * 100) / 100 : null,
+             n2: filled.filter(x => x >= 2).length };
+  };
+  const r = raterNow(), c = CUT[r];
+  const A = [
+    ["注意力不足", "1–9", sub(0, 9), c.ia],
+    ["過動／衝動", "10–18", sub(9, 18), c.hi],
+    ["ADHD 綜合", "1–18", sub(0, 18), c.c],
+    ["對立反抗", "19–26", sub(18, 26), c.odd]
+  ];
+  const B = [
+    ["注意力不足", "1–9", A[0][2].n2, 6],
+    ["過動／衝動", "10–18", A[1][2].n2, 6],
+    ["反抗對立", "19–26", A[3][2].n2, 4]
+  ];
+  return { r, A, B, done: ans.filter(a => a !== null).length };
+}
+const RLABEL = { parent: "父母版", teacher: "老師版" };
+function fmt(x) { return x === null ? "—" : x.toFixed(2); }
+
+function renderResult() {
+  const { r, A, B, done } = calc();
+  const aRows = A.map(([nm, rg, s, cut]) => {
+    const hit = s.complete && s.mean >= cut;
+    const res = !s.complete ? `<span style="color:#999">未填完（${s.filled}/${s.n}）</span>` : hit ? `<span class="flag">≥ 切截點</span>` : `<span class="ok">未達</span>`;
+    return `<tr><td>${nm}<br><small>${rg}</small></td><td>${s.sum}</td><td><b>${fmt(s.mean)}</b></td><td>${cut.toFixed(2)}</td><td>${res}</td></tr>`;
+  }).join("");
+  const bRows = B.map(([nm, rg, n2, cut]) => {
+    const hit = n2 >= cut;
+    return `<tr><td>${nm}<br><small>${rg}</small></td><td><b>${n2}</b> 題</td><td>≥ ${cut} 題</td><td>${hit ? '<span class="flag">達標準</span>' : '<span class="ok">未達</span>'}</td></tr>`;
+  }).join("");
+  const el = document.getElementById("result");
+  const keepOpt = document.getElementById("withScore");
+  const checked = keepOpt ? keepOpt.checked : true;
+  el.innerHTML =
+    `<h2>計分結果　已填 ${done}/26 題</h2>
+     <div>切截點版本：<span class="seg"><button data-r="parent" class="${r === "parent" ? "on" : ""}">父母填寫</button><button data-r="teacher" class="${r === "teacher" ? "on" : ""}">老師填寫</button></span></div>
+     <h3>方法 A｜各分量表平均分</h3>
+     <table><tr><th>分量表</th><th>總分</th><th>平均</th><th>切截點</th><th>結果</th></tr>${aRows}</table>
+     <h3>方法 B｜勾選「還算不少」以上（2 或 3）題數</h3>
+     <table><tr><th>分區</th><th>題數</th><th>標準</th><th>結果</th></tr>${bRows}</table>
+     <label class="opt"><input type="checkbox" id="withScore" ${checked ? "checked" : ""}> 下載 PDF 時附上計分結果（第 2 頁）</label>
+     <div class="hint">平均分＝分量表總分 ÷ 題數，四捨五入至小數第二位。切截點為原作者 Swanson 提出的暫定 5% 切截點（約第 95 百分位），依填表人（父母／老師）不同；未選時依上方圈選的關係判斷，「其他監護人」以父母版計。方法 B 為台中榮總等院所衛教採用的題數篩檢法。本量表僅供篩檢參考，達標準代表建議進一步評估，不等於診斷。</div>`;
+  el.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => { rater = b.dataset.r; renderResult(); }));
+}
+renderResult();
+document.querySelectorAll(".rel").forEach(el => el.addEventListener("click", () => { rater = null; renderResult(); }));
+
+document.getElementById("clear").addEventListener("click", () => {
+  ans.fill(null); rel = null; rater = null;
+  document.querySelectorAll("td.sc.on, .rel.on").forEach(x => x.classList.remove("on"));
+  document.querySelectorAll("tr.missing").forEach(x => x.classList.remove("missing"));
+  document.querySelectorAll("#sheet input").forEach(x => x.value = "");
+  setStatus("");
+  renderResult();
+});
+
+const statusEl = document.getElementById("status");
+function setStatus(s) { statusEl.textContent = s; }
+
+let downloads = null;
+document.getElementById("dl").disabled = false;
+setStatus("");
+(async () => {
+  try { if (window.claude && window.claude.use) downloads = await window.claude.use("downloads"); } catch (e) { downloads = null; }
+})();
+
+function buildScorePage() {
+  const { r, A, B, done } = calc();
+  const v = k => document.querySelector(`#sheet input[data-k="${k}"]`).value.trim();
+  const relTxt = { parent: "父/母親", teacher: "老師", other: "其他監護人" + (v("other") ? "（" + v("other") + "）" : "") }[rel] || "未圈選";
+  const date = (v("y") || v("m") || v("d")) ? `${v("y")} 年 ${v("m")} 月 ${v("d")} 日` : "—";
+  const aRows = A.map(([nm, rg, s, cut]) => `<tr><td class="l">${nm}（第 ${rg} 題）</td><td>${s.sum}</td><td>${s.n}</td><td><b>${fmt(s.mean)}</b></td><td>${cut.toFixed(2)}</td><td>${!s.complete ? "未填完" : s.mean >= cut ? "<b>≥ 切截點</b>" : "未達"}</td></tr>`).join("");
+  const bRows = B.map(([nm, rg, n2, cut]) => `<tr><td class="l">${nm}（第 ${rg} 題）</td><td><b>${n2}</b></td><td>≥ ${cut}</td><td>${n2 >= cut ? "<b>達標準</b>" : "未達"}</td></tr>`).join("");
+  const d = document.createElement("div");
+  d.className = "scorepage";
+  d.innerHTML = `<h2>SNAP-IV 計分結果</h2>
+    <div class="sub">填表人：${v("name") || "—"}　　關係：${relTxt}　　填表時間：${date}　　已填 ${done}/26 題</div>
+    <h3>方法 A｜各分量表平均分（${RLABEL[r]}切截點）</h3>
+    <table><tr><th>分量表</th><th>總分</th><th>題數</th><th>平均分</th><th>切截點</th><th>結果</th></tr>${aRows}</table>
+    <h3>方法 B｜勾選「還算不少」或「非常的多」的題數</h3>
+    <table><tr><th>分區</th><th>題數</th><th>標準</th><th>結果</th></tr>${bRows}</table>
+    <div class="foot">說明：平均分＝分量表總分 ÷ 題數，四捨五入至小數第二位；切截點為 Swanson 暫定 5% 切截點（約第 95 百分位）。方法 B 為各分區勾選 2 或 3 分的題數，分別至少 6、6、4 題為建議進一步篩檢的標準。<br>本量表為篩檢工具，結果達標準代表建議由兒童心智科／身心科醫師進一步評估，不等於診斷。</div>`;
+  return d;
+}
+
+async function snap(el) {
+  const holder = document.getElementById("render");
+  holder.innerHTML = "";
+  holder.appendChild(el);
+  const c = await html2canvas(el, { scale: 2, backgroundColor: "#ffffff", useCORS: true, windowWidth: 794 });
+  holder.innerHTML = "";
+  return c;
+}
+function addPage(pdf, canvas, first) {
+  if (!first) pdf.addPage();
+  const pw = 210, ph = 297;
+  let w = pw, h = canvas.height * pw / canvas.width;
+  if (h > ph) { h = ph; w = canvas.width * ph / canvas.height; }
+  pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", (pw - w) / 2, 0, w, h);
+}
+
+async function makePdf() {
+  await document.fonts.ready;
+  const clone = document.getElementById("sheet").cloneNode(true);
+  clone.removeAttribute("id");
+  const src = document.querySelectorAll("#sheet input");
+  clone.querySelectorAll("input").forEach((inp, idx) => {
+    const span = document.createElement("span");
+    span.className = "print-val";
+    span.style.minWidth = ({ name: 220, y: 52, m: 36, d: 36, other: 170 }[inp.dataset.k] || 100) + "px";
+    span.textContent = src[idx].value || " ";
+    inp.replaceWith(span);
+  });
+  clone.querySelectorAll("tr.missing").forEach(x => x.classList.remove("missing"));
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  addPage(pdf, await snap(clone), true);
+  if (document.getElementById("withScore").checked) addPage(pdf, await snap(buildScorePage()), false);
+  return pdf;
+}
+
+document.getElementById("dl").addEventListener("click", async () => {
+  const btn = document.getElementById("dl");
+  const missing = ans.map((a, i) => a === null ? i : -1).filter(i => i >= 0);
+  document.querySelectorAll("tbody tr").forEach(tr => tr.classList.toggle("missing", missing.includes(+tr.dataset.i)));
+  btn.disabled = true;
+  setStatus("產生 PDF 中…");
+  try {
+    const pdf = await makePdf();
+    const nm = document.querySelector('#sheet input[data-k="name"]').value.trim();
+    const filename = "SNAP-IV評量表" + (nm ? "_" + nm : "") + ".pdf";
+    if (downloads) await downloads.save({ filename, data: pdf.output("blob") });
+    else pdf.save(filename);
+    setStatus(missing.length ? `已下載（注意：第 ${missing.map(i => i + 1).join("、")} 題未填）` : "已下載 PDF");
+  } catch (e) {
+    const c = e && e.code;
+    setStatus(c === "declined" ? "已取消下載" : c === "rate_limited" ? "請稍候再試一次" : "下載失敗：" + (e && e.message || e));
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
