@@ -64,6 +64,8 @@
   .seg { display:inline-flex; border:1px solid #bbb; border-radius:8px; overflow:hidden; margin-left:6px; vertical-align:middle; }
   .seg button { font:inherit; font-size:13px; border:0; background:#fff; padding:5px 10px; cursor:pointer; }
   .seg button.on { background:#2b2b2b; color:#fff; }
+  .ctl { margin:6px 0; }
+  .ctl select { font:inherit; font-size:14px; padding:5px 8px; border:1px solid #bbb; border-radius:8px; background:#fff; }
   .opt { display:flex; gap:6px; align-items:center; margin-top:12px; font-size:13.5px; }
   .scorepage { background:#fff; width:794px; padding:56px 56px; font-family:"Noto Serif TC",serif; color:#111; }
   .scorepage h2 { text-align:center; font-size:24px; margin:0 0 6px; font-family:system-ui,"Noto Sans TC",sans-serif; }
@@ -204,11 +206,33 @@ document.querySelectorAll(".rel").forEach(el => el.addEventListener("click", () 
   document.querySelectorAll(".rel").forEach(x => x.classList.toggle("on", x.dataset.rel === rel));
 }));
 
-const CUT = { // Swanson 暫定 5% 切截點（約 P95）
+const CUT = { // Swanson 暫定 5% 切截點（約 P95），平均分
   parent:  { ia:1.78, hi:1.44, c:1.67, odd:1.88 },
   teacher: { ia:2.56, hi:1.78, c:2.00, odd:1.38 }
 };
+// 台灣常模：劉昱志、劉士愷、商志雍、林健禾、杜長齡、高淑芬（2006）台灣精神醫學 20(4):290-304，表 4–6
+// 每格 [T60, T70, P95]，為分量表「總分」；索引 [年級 1–8][0=男,1=女]
+const TW = {
+  parent: {
+    ia: [[[12.6,17.3,17],[10.3,14.1,13]],[[12.5,17.1,16],[11.1,15.5,16]],[[12.9,17.9,19],[10.8,15.1,14]],[[13.2,18.3,18],[10.8,15.4,16]],
+         [[12.9,18.0,18],[10.8,15.3,14]],[[12.3,17.1,16],[10.4,14.8,15]],[[13.1,18.4,18],[10.0,14.4,15]],[[12.7,17.7,18],[10.2,14.5,13]]],
+    hi: [[[12.2,17.5,18],[8.6,12.4,11]],[[11.9,17.7,15],[8.5,12.5,12]],[[10.5,15.2,15],[8.0,12.0,10]],[[10.8,15.6,17],[6.9,10.3,11]],
+         [[10.9,16.2,16],[7.0,10.6,9]],[[8.9,13.2,14],[7.5,11.5,12]],[[9.2,13.8,15],[6.0,9.3,9]],[[9.2,13.9,14],[6.0,9.2,10]]],
+    odd:[[[10.3,14.7,15],[9.1,12.8,13]],[[11.1,16.0,15],[9.4,13.4,14]],[[10.3,14.8,14],[8.6,12.2,11]],[[11.1,15.7,17],[9.0,13.0,12]],
+         [[11.1,16.1,16],[9.4,13.5,12]],[[9.9,14.3,14],[9.7,14.3,15]],[[9.8,14.2,14],[9.0,13.0,13]],[[10.0,14.5,14],[9.7,14.3,14]]]
+  },
+  teacher: {
+    ia: [[[16.1,23.4,22],[10.4,16.1,19]],[[12.0,17.5,18],[8.3,12.9,14]],[[15.6,22.1,23],[9.9,14.8,15]],[[14.7,21.6,22],[9.3,14.6,16]],
+         [[14.9,21.8,21],[9.4,14.6,17]],[[14.8,21.9,22],[9.4,14.7,15]],[[15.4,22.5,23],[null,null,14]],[[15.4,22.3,24],[9.3,13.9,13]]],
+    hi: [[[14.3,21.7,23],[6.5,10.8,13]],[[10.3,15.7,16],[4.3,7.1,9]],[[13.1,19.5,21],[4.5,7.3,7]],[[11.4,17.7,19],[4.3,7.3,7]],
+         [[11.4,17.6,19],[3.2,5.3,5]],[[9.1,14.0,15],[5.1,8.6,10]],[[11.3,17.8,21],[null,null,6]],[[9.9,15.8,18],[4.1,6.8,7]]],
+    odd:[[[9.7,15.1,16],[5.4,9.1,10]],[[7.8,12.1,12],[3.4,5.7,6]],[[10.2,15.7,16],[3.8,6.4,7]],[[10.1,16.0,20],[4.4,7.5,7]],
+         [[9.9,15.6,17],[3.9,6.7,7]],[[9.2,14.4,15],[4.8,8.0,8]],[[9.3,15.0,17],[5.8,9.7,11]],[[8.3,13.4,16],[6.1,10.1,10]]]
+  }
+};
+const GRADES = ["國小一年級","國小二年級","國小三年級","國小四年級","國小五年級","國小六年級","國中一年級","國中二年級"];
 let rater = null; // 'parent' | 'teacher'; null = 跟隨圈選
+let grade = null, sex = null; // grade 1–8, sex 0 男 / 1 女
 function raterNow() { return rater || (rel === "teacher" ? "teacher" : "parent"); }
 
 function calc() {
@@ -221,24 +245,32 @@ function calc() {
              n2: filled.filter(x => x >= 2).length };
   };
   const r = raterNow(), c = CUT[r];
-  const A = [
-    ["注意力不足", "1–9", sub(0, 9), c.ia],
-    ["過動／衝動", "10–18", sub(9, 18), c.hi],
-    ["ADHD 綜合", "1–18", sub(0, 18), c.c],
-    ["反抗對立", "19–26", sub(18, 26), c.odd]
-  ];
-  const B = [
-    ["注意力不足", "1–9", A[0][2].n2, 6, A[0][2].n - A[0][2].filled],
-    ["過動／衝動", "10–18", A[1][2].n2, 6, A[1][2].n - A[1][2].filled],
-    ["反抗對立", "19–26", A[3][2].n2, 4, A[3][2].n - A[3][2].filled]
-  ];
-  return { r, A, B, done: ans.filter(a => a !== null).length };
+  const ia = sub(0, 9), hi = sub(9, 18), odd = sub(18, 26), all = sub(0, 18);
+  const norm = k => (grade && sex !== null) ? TW[r][k][grade - 1][sex] : null;
+  const T = [["注意力不足", "1–9", ia, norm("ia")], ["過動／衝動", "10–18", hi, norm("hi")], ["反抗對立", "19–26", odd, norm("odd")]];
+  const A = [["注意力不足", "1–9", ia, c.ia], ["過動／衝動", "10–18", hi, c.hi], ["ADHD 綜合", "1–18", all, c.c], ["反抗對立", "19–26", odd, c.odd]];
+  const B = [["注意力不足", "1–9", ia.n2, 6, ia.n - ia.filled], ["過動／衝動", "10–18", hi.n2, 6, hi.n - hi.filled], ["反抗對立", "19–26", odd.n2, 4, odd.n - odd.filled]];
+  return { r, T, A, B, done: ans.filter(a => a !== null).length };
 }
 const RLABEL = { parent: "父母版", teacher: "老師版" };
 function fmt(x) { return x === null ? "—" : x.toFixed(2); }
+function twLevel(s, nm) { // returns {txt, hit}
+  if (!nm) return { txt: "請選年級與性別", hit: false, na: true };
+  if (!s.complete) return { txt: `未填完（${s.filled}/${s.n}）`, hit: false, na: true };
+  const [t60, t70, p95] = nm;
+  const hit = s.sum >= p95;
+  const t = t70 !== null && s.sum > t70 ? "，T>70" : t60 !== null && s.sum > t60 ? "，T>60" : "";
+  return { txt: (hit ? "達 P95" : "未達 P95") + t, hit };
+}
+const tcell = v => v === null ? "—*" : v;
 
 function renderResult() {
-  const { r, A, B, done } = calc();
+  const { r, T, A, B, done } = calc();
+  const tRows = T.map(([nm, rg, s, n]) => {
+    const L = twLevel(s, n);
+    const res = L.na ? `<span style="color:#999">${L.txt}</span>` : L.hit ? `<span class="flag">${L.txt}</span>` : `<span class="ok">${L.txt}</span>`;
+    return `<tr><td>${nm}<br><small>${rg}</small></td><td><b>${s.sum}</b></td><td>${n ? "≥ " + n[2] : "—"}</td><td>${n ? tcell(n[0]) + " / " + tcell(n[1]) : "—"}</td><td>${res}</td></tr>`;
+  }).join("");
   const aRows = A.map(([nm, rg, s, cut]) => {
     const hit = s.complete && s.mean >= cut;
     const res = !s.complete ? `<span style="color:#999">未填完（${s.filled}/${s.n}）</span>` : hit ? `<span class="flag">≥ 切截點</span>` : `<span class="ok">未達</span>`;
@@ -248,25 +280,36 @@ function renderResult() {
     const res = n2 >= cut ? '<span class="flag">達標準</span>' : n2 + left >= cut ? `<span style="color:#999">未填完（尚缺 ${left} 題）</span>` : '<span class="ok">未達</span>';
     return `<tr><td>${nm}<br><small>${rg}</small></td><td><b>${n2}</b> 題</td><td>≥ ${cut} 題</td><td>${res}</td></tr>`;
   }).join("");
+  const g7f = r === "teacher" && grade === 7 && sex === 1;
   const el = document.getElementById("result");
   const keepOpt = document.getElementById("withScore");
   const checked = keepOpt ? keepOpt.checked : true;
   el.innerHTML =
     `<h2>計分結果　已填 ${done}/26 題</h2>
-     <div>切截點版本：<span class="seg"><button data-r="parent" class="${r === "parent" ? "on" : ""}">父母填寫</button><button data-r="teacher" class="${r === "teacher" ? "on" : ""}">老師填寫</button></span></div>
-     <h3>方法 A｜各分量表平均分</h3>
-     <table><tr><th>分量表</th><th>總分</th><th>平均</th><th>切截點</th><th>結果</th></tr>${aRows}</table>
+     <div class="ctl">填表人：<span class="seg" data-g="r"><button data-v="parent" class="${r === "parent" ? "on" : ""}">父母</button><button data-v="teacher" class="${r === "teacher" ? "on" : ""}">老師</button></span></div>
+     <div class="ctl">孩子性別：<span class="seg" data-g="s"><button data-v="0" class="${sex === 0 ? "on" : ""}">男</button><button data-v="1" class="${sex === 1 ? "on" : ""}">女</button></span></div>
+     <div class="ctl">孩子年級：<select id="gradeSel"><option value="">請選擇</option>${GRADES.map((g, i) => `<option value="${i + 1}" ${grade === i + 1 ? "selected" : ""}>${g}</option>`).join("")}</select></div>
+     <h3>方法 A｜台灣常模（分量表總分）</h3>
+     <table><tr><th>分量表</th><th>總分</th><th>P95</th><th>T60 / T70</th><th>結果</th></tr>${tRows}</table>
+     ${g7f ? '<div class="hint">* 原論文表 5 中，國一女生老師版的 T60/T70 數值與男生重複，疑為誤植，故不列出，僅以 P95 判斷。</div>' : ""}
      <h3>方法 B｜勾選「還算不少」以上（2 或 3）題數</h3>
      <table><tr><th>分區</th><th>題數</th><th>標準</th><th>結果</th></tr>${bRows}</table>
+     <h3>方法 C｜Swanson 平均分切截點（參考）</h3>
+     <table><tr><th>分量表</th><th>總分</th><th>平均</th><th>切截點</th><th>結果</th></tr>${aRows}</table>
      <label class="opt"><input type="checkbox" id="withScore" ${checked ? "checked" : ""}> 下載 PDF 時附上計分結果（第 2 頁）</label>
-     <div class="hint">平均分＝分量表總分 ÷ 題數，四捨五入至小數第二位。切截點為原作者 Swanson 提出的暫定 5% 切截點（約第 95 百分位），依填表人（父母／老師）不同；未選時依上方圈選的關係判斷，「其他監護人」以父母版計。方法 B 為台中榮總等院所衛教採用的題數篩檢法。本量表僅供篩檢參考，達標準代表建議進一步評估，不等於診斷。</div>`;
-  el.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => { rater = b.dataset.r; renderResult(); }));
+     <div class="hint">方法 A：各分量表題目分數加總，對照劉昱志、高淑芬等（2006）依年級、性別、填表人建立的台灣常模；作者建議以第 95 百分位（P95）為切截點，總分 ≥ P95 即達標準。T>60 為高於平均 1 個標準差、T>70 為高於平均 2 個標準差。常模適用國小一年級至國中二年級。<br>方法 B：台中榮總等院所衛教採用的題數篩檢法。方法 C：原作者 Swanson 的暫定 5% 切截點（美國樣本，平均分）。<br>本量表僅供篩檢參考，達標準代表建議進一步評估，不等於診斷。</div>`;
+  el.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+    const g = b.parentElement.dataset.g;
+    if (g === "r") rater = b.dataset.v; else sex = +b.dataset.v;
+    renderResult();
+  }));
+  el.querySelector("#gradeSel").addEventListener("change", e => { grade = e.target.value ? +e.target.value : null; renderResult(); });
 }
 renderResult();
 document.querySelectorAll(".rel").forEach(el => el.addEventListener("click", () => { rater = null; renderResult(); }));
 
 document.getElementById("clear").addEventListener("click", () => {
-  ans.fill(null); rel = null; rater = null;
+  ans.fill(null); rel = null; rater = null; grade = null; sex = null;
   document.querySelectorAll("td.sc.on, .rel.on").forEach(x => x.classList.remove("on"));
   document.querySelectorAll("tr.missing").forEach(x => x.classList.remove("missing"));
   document.querySelectorAll("#sheet input").forEach(x => x.value = "");
@@ -291,21 +334,25 @@ setStatus("");
 })();
 
 function buildScorePage() {
-  const { r, A, B, done } = calc();
+  const { r, T, A, B, done } = calc();
   const v = k => document.querySelector(`#sheet input[data-k="${k}"]`).value.trim();
   const relTxt = { parent: "父/母親", teacher: "老師", other: "其他監護人" + (v("other") ? "（" + v("other") + "）" : "") }[rel] || "未圈選";
   const date = (v("y") || v("m") || v("d")) ? `${v("y")} 年 ${v("m")} 月 ${v("d")} 日` : "—";
-  const aRows = A.map(([nm, rg, s, cut]) => `<tr><td class="l">${nm}（第 ${rg} 題）</td><td>${s.sum}</td><td>${s.n}</td><td><b>${fmt(s.mean)}</b></td><td>${cut.toFixed(2)}</td><td>${!s.complete ? "未填完" : s.mean >= cut ? "<b>≥ 切截點</b>" : "未達"}</td></tr>`).join("");
+  const who = `${grade ? GRADES[grade - 1] : "年級未選"}・${sex === null ? "性別未選" : sex === 0 ? "男" : "女"}`;
+  const tRows = T.map(([nm, rg, s, n]) => { const L = twLevel(s, n); return `<tr><td class="l">${nm}（第 ${rg} 題）</td><td><b>${s.sum}</b></td><td>${n ? "≥ " + n[2] : "—"}</td><td>${n ? tcell(n[0]) + " / " + tcell(n[1]) : "—"}</td><td>${L.hit ? "<b>" + L.txt + "</b>" : L.txt}</td></tr>`; }).join("");
+  const aRows = A.map(([nm, rg, s, cut]) => `<tr><td class="l">${nm}（第 ${rg} 題）</td><td>${s.sum}</td><td><b>${fmt(s.mean)}</b></td><td>${cut.toFixed(2)}</td><td>${!s.complete ? "未填完" : s.mean >= cut ? "<b>≥ 切截點</b>" : "未達"}</td></tr>`).join("");
   const bRows = B.map(([nm, rg, n2, cut, left]) => `<tr><td class="l">${nm}（第 ${rg} 題）</td><td><b>${n2}</b></td><td>≥ ${cut}</td><td>${n2 >= cut ? "<b>達標準</b>" : n2 + left >= cut ? "未填完" : "未達"}</td></tr>`).join("");
   const d = document.createElement("div");
   d.className = "scorepage";
   d.innerHTML = `<h2>SNAP-IV 計分結果</h2>
-    <div class="sub">填表人：${v("name") || "—"}　　關係：${relTxt}　　填表時間：${date}　　已填 ${done}/26 題</div>
-    <h3>方法 A｜各分量表平均分（${RLABEL[r]}切截點）</h3>
-    <table><tr><th>分量表</th><th>總分</th><th>題數</th><th>平均分</th><th>切截點</th><th>結果</th></tr>${aRows}</table>
+    <div class="sub">填表人：${v("name") || "—"}　關係：${relTxt}　填表時間：${date}<br>受評孩子：${who}　已填 ${done}/26 題</div>
+    <h3>方法 A｜台灣常模（${RLABEL[r]}，分量表總分）</h3>
+    <table><tr><th>分量表</th><th>總分</th><th>P95</th><th>T60 / T70</th><th>結果</th></tr>${tRows}</table>
     <h3>方法 B｜勾選「還算不少」或「非常的多」的題數</h3>
     <table><tr><th>分區</th><th>題數</th><th>標準</th><th>結果</th></tr>${bRows}</table>
-    <div class="foot">說明：平均分＝分量表總分 ÷ 題數，四捨五入至小數第二位；切截點為 Swanson 暫定 5% 切截點（約第 95 百分位）。方法 B 為各分區勾選 2 或 3 分的題數，分別至少 6、6、4 題為建議進一步篩檢的標準。<br>本量表為篩檢工具，結果達標準代表建議由兒童心智科／身心科醫師進一步評估，不等於診斷。</div>`;
+    <h3>方法 C｜Swanson 平均分切截點（${RLABEL[r]}，參考）</h3>
+    <table><tr><th>分量表</th><th>總分</th><th>平均分</th><th>切截點</th><th>結果</th></tr>${aRows}</table>
+    <div class="foot">方法 A：分量表總分對照劉昱志、劉士愷、商志雍、林健禾、杜長齡、高淑芬（2006）台灣常模（台灣精神醫學 20(4):290–304），依年級、性別、填表人；總分 ≥ P95 為建議切截點，T>60／T>70 分別為高於平均 1／2 個標準差。方法 B：各分區勾選 2 或 3 分的題數，分別至少 6、6、4 題。方法 C：Swanson 暫定 5% 切截點（平均分）。${r === "teacher" && grade === 7 && sex === 1 ? "<br>* 原論文國一女生老師版 T60/T70 疑為誤植，未列出。" : ""}<br>本量表為篩檢工具，結果達標準代表建議由兒童心智科／身心科醫師進一步評估，不等於診斷。</div>`;
   return d;
 }
 
