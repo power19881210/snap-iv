@@ -23,7 +23,11 @@
   #status:empty { display:none; }
 
   .wrap { padding:16px 8px 40px; }
-  .sheet { background:#fff; width:100%; max-width:794px; margin:0 auto; padding:44px 48px 40px; box-shadow:0 1px 6px rgba(0,0,0,.15); }
+  .sheet { background:#fff; width:100%; max-width:794px; margin:0 auto; padding:44px 48px 40px; box-shadow:0 1px 6px rgba(0,0,0,.15); position:relative; }
+  .stu { position:absolute; top:16px; right:20px; font-size:15px; font-weight:700; }
+  .stu .line-input { width:110px; text-align:center; }
+  #render .stu { position:absolute !important; top:14px; right:30px; margin:0 !important; }
+  @media (max-width:600px) { .stu { position:static; text-align:right; margin:-8px 0 10px; } }
   h1 { text-align:center; font-size:30px; margin:0 0 14px; letter-spacing:1px; color:#333; font-weight:700; font-family:system-ui,"Noto Sans TC",sans-serif; }
   .author { text-align:center; font-size:15px; line-height:1.75; color:#333; }
   .meta { font-size:16px; font-weight:700; margin-top:10px; line-height:1.9; }
@@ -137,6 +141,7 @@
 
 <div class="wrap">
   <div class="sheet" id="sheet">
+    <div class="stu">學童姓名：<input class="line-input" data-k="stu"></div>
     <h1>SNAP-IV 評量表</h1>
     <div class="author">James M. Swanson, PhD<br>Translated by Susan Shur-Fen Gau (高淑芬), M.D., PhD</div>
     <div class="meta">
@@ -380,7 +385,7 @@ function buildScorePage() {
   const d = document.createElement("div");
   d.className = "scorepage";
   d.innerHTML = `<h2>SNAP-IV 計分結果</h2>
-    <div class="sub">填表人：${v("name") || "—"}　關係：${relTxt}　填表時間：${date}<br>受評孩子：${who}　已填 ${done}/26 題</div>
+    <div class="sub">填表人：${v("name") || "—"}　關係：${relTxt}　填表時間：${date}<br>受評孩子：${v("stu") ? v("stu") + "・" : ""}${who}　已填 ${done}/26 題</div>
     <h3>方法 A｜台灣常模（${RLABEL[r]}，分量表總分）</h3>
     <table><tr><th>分量表</th><th>總分</th><th>P95</th><th>T60 / T70</th><th>結果</th></tr>${tRows}</table>
     <h3>方法 B｜勾選「還算不少」或「非常的多」的題數</h3>
@@ -423,7 +428,7 @@ async function makePdf() {
   clone.querySelectorAll("input").forEach((inp, idx) => {
     const span = document.createElement("span");
     span.className = "print-val";
-    span.style.minWidth = ({ name: 220, y: 52, m: 36, d: 36, other: 170 }[inp.dataset.k] || 100) + "px";
+    span.style.minWidth = ({ stu: 110, name: 220, y: 52, m: 36, d: 36, other: 170 }[inp.dataset.k] || 100) + "px";
     span.textContent = src[idx].value || " ";
     inp.replaceWith(span);
   });
@@ -444,7 +449,8 @@ document.getElementById("dl").addEventListener("click", async () => {
   setStatus("產生 PDF 中…");
   try {
     const pdf = await makePdf();
-    const nm = document.querySelector('#sheet input[data-k="name"]').value.trim();
+    const q = k => document.querySelector(`#sheet input[data-k="${k}"]`).value.trim().replace(/[\\/:*?"<>|]/g, "");
+    const nm = q("stu") || q("name");
     const filename = "SNAP-IV評量表" + (nm ? "_" + nm : "") + ".pdf";
     if (downloads) await downloads.save({ filename, data: pdf.output("blob") });
     else pdf.save(filename);
