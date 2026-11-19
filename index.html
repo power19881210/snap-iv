@@ -452,7 +452,10 @@ document.getElementById("dl").addEventListener("click", async () => {
     const pdf = await makePdf();
     const q = k => document.querySelector(`#sheet input[data-k="${k}"]`).value.trim().replace(/[\\/:*?"<>|]/g, "");
     const nm = q("stu") || q("name");
-    const filename = "SNAP-IV評量表" + (nm ? "_" + nm : "") + ".pdf";
+    const who = { parent: "父母", teacher: "老師", other: "其他監護人" }[rel] || (raterNow() === "teacher" ? "老師" : "父母");
+    const t = new Date(), p2 = n => String(n).padStart(2, "0");
+    const stamp = `${t.getFullYear() - 1911}${p2(t.getMonth() + 1)}${p2(t.getDate())}-${p2(t.getHours())}${p2(t.getMinutes())}${p2(t.getSeconds())}`;
+    const filename = `SNAP-IV評量表_${nm || "未填姓名"}-${who}_${stamp}.pdf`;
     if (downloads) await downloads.save({ filename, data: pdf.output("blob") });
     else pdf.save(filename);
     setStatus(missing.length ? `已下載（注意：第 ${missing.map(i => i + 1).join("、")} 題未填）` : "已下載 PDF");
