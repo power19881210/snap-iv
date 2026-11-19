@@ -108,9 +108,27 @@
     .w-name { width:150px; }
     .notes { font-size:14px; line-height:1.9; }
   }
+  .modal-bg { position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:20px; font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif; }
+  .modal { background:#fff; border-radius:14px; max-width:360px; width:100%; padding:22px 20px 18px; text-align:center; box-shadow:0 8px 30px rgba(0,0,0,.3); }
+  .modal h2 { font-size:18px; margin:0 0 10px; color:#b03a2e; }
+  .modal p { font-size:15px; line-height:1.7; margin:0 0 16px; color:#222; }
+  .modal .row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .modal button, .modal a { font:inherit; font-size:15px; font-weight:600; border:0; border-radius:10px; padding:10px 22px; cursor:pointer; text-decoration:none; }
+  .modal .ok { background:#2b2b2b; color:#fff; }
+  .modal .ext { background:#06c755; color:#fff; }
 </style>
 </head>
 <body>
+<div class="modal-bg" id="notice" role="dialog" aria-modal="true">
+  <div class="modal">
+    <h2>⚠️ 開啟方式提醒</h2>
+    <p>請不要用 LINE 內建瀏覽器開啟本頁，<br>否則可能無法下載 PDF。<br>請改用外部瀏覽器（Chrome、Safari）開啟。</p>
+    <div class="row">
+      <a class="ext" id="openExt" href="#" style="display:none">用外部瀏覽器開啟</a>
+      <button class="ok" id="noticeOk">確認</button>
+    </div>
+  </div>
+</div>
 <div class="toolbar">
   <button class="btn-main" id="dl">下載 PDF</button>
   <button class="btn-sub" id="clear">清除重填</button>
@@ -150,6 +168,17 @@
 <div id="render" aria-hidden="true"></div>
 
 <script>
+(function () {
+  const bg = document.getElementById("notice");
+  document.getElementById("noticeOk").addEventListener("click", () => bg.remove());
+  if (/\bLine\//i.test(navigator.userAgent)) {
+    const a = document.getElementById("openExt");
+    const u = new URL(location.href);
+    u.searchParams.set("openExternalBrowser", "1");
+    a.href = u.toString();
+    a.style.display = "";
+  }
+})();
 const ITEMS = [
   "無法專注於細節的部分，或在做學校作業或其他活動時，出現粗心的錯誤",
   "很難持續專注於工作或遊戲活動",
