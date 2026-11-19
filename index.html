@@ -225,12 +225,12 @@ function calc() {
     ["注意力不足", "1–9", sub(0, 9), c.ia],
     ["過動／衝動", "10–18", sub(9, 18), c.hi],
     ["ADHD 綜合", "1–18", sub(0, 18), c.c],
-    ["對立反抗", "19–26", sub(18, 26), c.odd]
+    ["反抗對立", "19–26", sub(18, 26), c.odd]
   ];
   const B = [
-    ["注意力不足", "1–9", A[0][2].n2, 6],
-    ["過動／衝動", "10–18", A[1][2].n2, 6],
-    ["反抗對立", "19–26", A[3][2].n2, 4]
+    ["注意力不足", "1–9", A[0][2].n2, 6, A[0][2].n - A[0][2].filled],
+    ["過動／衝動", "10–18", A[1][2].n2, 6, A[1][2].n - A[1][2].filled],
+    ["反抗對立", "19–26", A[3][2].n2, 4, A[3][2].n - A[3][2].filled]
   ];
   return { r, A, B, done: ans.filter(a => a !== null).length };
 }
@@ -244,9 +244,9 @@ function renderResult() {
     const res = !s.complete ? `<span style="color:#999">未填完（${s.filled}/${s.n}）</span>` : hit ? `<span class="flag">≥ 切截點</span>` : `<span class="ok">未達</span>`;
     return `<tr><td>${nm}<br><small>${rg}</small></td><td>${s.sum}</td><td><b>${fmt(s.mean)}</b></td><td>${cut.toFixed(2)}</td><td>${res}</td></tr>`;
   }).join("");
-  const bRows = B.map(([nm, rg, n2, cut]) => {
-    const hit = n2 >= cut;
-    return `<tr><td>${nm}<br><small>${rg}</small></td><td><b>${n2}</b> 題</td><td>≥ ${cut} 題</td><td>${hit ? '<span class="flag">達標準</span>' : '<span class="ok">未達</span>'}</td></tr>`;
+  const bRows = B.map(([nm, rg, n2, cut, left]) => {
+    const res = n2 >= cut ? '<span class="flag">達標準</span>' : n2 + left >= cut ? `<span style="color:#999">未填完（尚缺 ${left} 題）</span>` : '<span class="ok">未達</span>';
+    return `<tr><td>${nm}<br><small>${rg}</small></td><td><b>${n2}</b> 題</td><td>≥ ${cut} 題</td><td>${res}</td></tr>`;
   }).join("");
   const el = document.getElementById("result");
   const keepOpt = document.getElementById("withScore");
@@ -296,7 +296,7 @@ function buildScorePage() {
   const relTxt = { parent: "父/母親", teacher: "老師", other: "其他監護人" + (v("other") ? "（" + v("other") + "）" : "") }[rel] || "未圈選";
   const date = (v("y") || v("m") || v("d")) ? `${v("y")} 年 ${v("m")} 月 ${v("d")} 日` : "—";
   const aRows = A.map(([nm, rg, s, cut]) => `<tr><td class="l">${nm}（第 ${rg} 題）</td><td>${s.sum}</td><td>${s.n}</td><td><b>${fmt(s.mean)}</b></td><td>${cut.toFixed(2)}</td><td>${!s.complete ? "未填完" : s.mean >= cut ? "<b>≥ 切截點</b>" : "未達"}</td></tr>`).join("");
-  const bRows = B.map(([nm, rg, n2, cut]) => `<tr><td class="l">${nm}（第 ${rg} 題）</td><td><b>${n2}</b></td><td>≥ ${cut}</td><td>${n2 >= cut ? "<b>達標準</b>" : "未達"}</td></tr>`).join("");
+  const bRows = B.map(([nm, rg, n2, cut, left]) => `<tr><td class="l">${nm}（第 ${rg} 題）</td><td><b>${n2}</b></td><td>≥ ${cut}</td><td>${n2 >= cut ? "<b>達標準</b>" : n2 + left >= cut ? "未填完" : "未達"}</td></tr>`).join("");
   const d = document.createElement("div");
   d.className = "scorepage";
   d.innerHTML = `<h2>SNAP-IV 計分結果</h2>
