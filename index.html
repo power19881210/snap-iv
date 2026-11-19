@@ -94,11 +94,13 @@
   .relrow .w-other { flex:1; min-width:120px; }
   #render .relrow { flex-wrap:nowrap; }
   #render .relrow .print-val { flex:1; min-width:0 !important; text-align:left; }
-  #render h1 { margin-bottom:8px; }
-  #render .meta { margin-top:6px; line-height:1.75; }
-  #render table { font-size:15px; margin-top:8px; }
+  #render h1 { font-size:28px; margin:0 0 6px; }
+  #render .author { font-size:13.5px; line-height:1.5; }
+  #render .meta { margin-top:8px; font-size:17px; line-height:1.85; }
+  #render table { font-size:17px; margin-top:8px; }
+  #render th { font-size:14px; }
   #render td { padding:2px 4px; line-height:1.35; }
-  #render .notes { margin-top:16px; font-size:15px; line-height:1.85; }
+  #render .notes { margin-top:8px; font-size:12.5px; line-height:1.5; }
   .today-btn { font:inherit; font-size:13px; font-weight:600; font-family:system-ui,"Noto Sans TC",sans-serif; margin-left:8px; padding:3px 10px; border:1px solid #888; border-radius:999px; background:#f4f4f4; cursor:pointer; vertical-align:middle; }
   .print-val { display:inline-block; border-bottom:1.5px solid #222; font-weight:700; font-size:18px; line-height:1.3; padding:0 4px; text-align:center; vertical-align:bottom; min-height:1.4em; }
 
@@ -529,10 +531,13 @@ async function makePdfText() {
   try {
     const clone = buildClone();
     holder.innerHTML = ""; holder.appendChild(clone);
-    for (let W = 794; W <= 1100; W += 22) { // 太高就加寬版面，讓整頁塞進 A4
+    let W = 794;
+    for (W = 794; W <= 1100; W += 22) { // 太高就加寬版面，讓整頁塞進 A4
       holder.style.width = clone.style.width = W + "px";
       if (clone.offsetHeight <= W * 297 / 210) break;
     }
+    const extra = W * 297 / 210 - clone.offsetHeight - 6, rows = clone.querySelectorAll("tbody tr");
+    if (extra > 0) { const add = Math.min(extra / rows.length / 2, 8); rows.forEach(tr => tr.querySelectorAll("td").forEach(td => { td.style.paddingTop = td.style.paddingBottom = (2 + add) + "px"; })); }
     drawDom(pdf, clone);
     holder.style.width = "";
     if (document.getElementById("withScore").checked) {
