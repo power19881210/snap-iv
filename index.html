@@ -27,7 +27,7 @@
   .stu { position:absolute; top:16px; right:20px; font-size:15px; font-weight:700; }
   .stu .line-input { width:110px; text-align:center; }
   #render .stu { position:absolute !important; top:14px; right:30px; margin:0 !important; }
-  @media (max-width:600px) { .stu { position:static; text-align:right; margin:-8px 0 10px; } }
+  @media (max-width:600px) { #sheet .stu { position:static; text-align:right; margin:-8px 0 10px; } }
   h1 { text-align:center; font-size:30px; margin:0 0 14px; letter-spacing:1px; color:#333; font-weight:700; font-family:system-ui,"Noto Sans TC",sans-serif; }
   .author { text-align:center; font-size:15px; line-height:1.75; color:#333; }
   .meta { font-size:16px; font-weight:700; margin-top:10px; line-height:1.9; }
@@ -80,11 +80,13 @@
   .scorepage th { background:#e6e6e6; font-weight:700; }
   .scorepage td.l { text-align:left; }
   .scorepage .hit { display:inline-block; border:2px solid #111; padding:0 7px 4px; font-weight:700; line-height:1.25; }
+  #render.pdftext .scorepage .hit { padding:2px 7px; }
   .scorepage .foot { font-size:13px; line-height:1.8; color:#333; margin-top:22px; }
   .hint { color:#666; font-size:12px; margin-top:8px; line-height:1.6; }
 
   /* off-screen render target for PDF */
   #render { position:fixed; left:-10000px; top:0; width:794px; }
+  #render.pdftext, #render.pdftext * { font-family:"tcpdf" !important; }
   #render .sheet { max-width:none; width:794px; box-shadow:none; }
   #render .sheet { padding:34px 30px 26px; }
   .relrow { display:flex; flex-wrap:wrap; align-items:baseline; }
@@ -101,16 +103,16 @@
   .print-val { display:inline-block; border-bottom:1.5px solid #222; font-weight:700; font-size:18px; line-height:1.3; padding:0 4px; text-align:center; vertical-align:bottom; min-height:1.4em; }
 
   @media (max-width:600px) {
-    .sheet { padding:24px 12px 28px; }
-    h1 { font-size:24px; }
-    .author { font-size:12.5px; }
-    .meta { font-size:14.5px; }
-    table { font-size:14.5px; }
-    th { font-size:12px; width:34px; }
-    td.sc { width:34px; }
-    .num { width:24px; }
-    .w-name { width:150px; }
-    .notes { font-size:14px; line-height:1.9; }
+    #sheet { padding:24px 12px 28px; }
+    #sheet h1 { font-size:24px; }
+    #sheet .author { font-size:12.5px; }
+    #sheet .meta { font-size:14.5px; }
+    #sheet table { font-size:14.5px; }
+    #sheet th { font-size:12px; width:34px; }
+    #sheet td.sc { width:34px; }
+    #sheet .num { width:24px; }
+    #sheet .w-name { width:150px; }
+    #sheet .notes { font-size:14px; line-height:1.9; }
   }
   .modal-bg { position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:20px; font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif; }
   .modal { background:#fff; border-radius:14px; max-width:360px; width:100%; padding:22px 20px 18px; text-align:center; box-shadow:0 8px 30px rgba(0,0,0,.3); }
@@ -246,6 +248,7 @@ document.querySelectorAll(".rel").forEach(el => el.addEventListener("click", () 
   document.querySelectorAll(".rel").forEach(x => x.classList.toggle("on", x.dataset.rel === rel));
 }));
 
+const FONT_BASE = "fonts/";
 const CUT = { // Swanson 暫定 5% 切截點（約 P95），平均分
   parent:  { ia:1.78, hi:1.44, c:1.67, odd:1.88 },
   teacher: { ia:2.56, hi:1.78, c:2.00, odd:1.38 }
@@ -421,8 +424,7 @@ function addPage(pdf, canvas, first) {
   pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", (pw - w) / 2, 0, w, h);
 }
 
-async function makePdf() {
-  await document.fonts.ready;
+function buildClone() {
   const clone = document.getElementById("sheet").cloneNode(true);
   clone.removeAttribute("id");
   const src = document.querySelectorAll("#sheet input");
@@ -430,16 +432,119 @@ async function makePdf() {
     const span = document.createElement("span");
     span.className = "print-val";
     span.style.minWidth = ({ stu: 110, name: 220, y: 52, m: 36, d: 36, other: 170 }[inp.dataset.k] || 100) + "px";
-    span.textContent = src[idx].value || " ";
+    span.textContent = src[idx].value || "\u00a0";
     inp.replaceWith(span);
   });
   clone.querySelectorAll(".no-print").forEach(x => x.remove());
   clone.querySelectorAll("tr.missing").forEach(x => x.classList.remove("missing"));
+  return clone;
+}
+async function makePdfImage() {
+  await document.fonts.ready;
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  addPage(pdf, await snap(clone, true), true);
+  addPage(pdf, await snap(buildClone(), true), true);
   if (document.getElementById("withScore").checked) addPage(pdf, await snap(buildScorePage()), false);
   return pdf;
+}
+// ---- 文字版 PDF：載入內建中文字型（Noto Serif TC 子集，SIL OFL）----
+let FONT = null;
+function toB64(buf) { const u = new Uint8Array(buf); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
+async function loadFont() {
+  if (FONT) return FONT;
+  const get = async n => { const r = await fetch(FONT_BASE + n); if (!r.ok) throw new Error("font " + r.status); return r.arrayBuffer(); };
+  const [r, b] = await Promise.all([get("TC-Regular.ttf"), get("TC-Bold.ttf")]);
+  const f1 = new FontFace("tcpdf", r.slice(0), { weight: "400" }), f2 = new FontFace("tcpdf", b.slice(0), { weight: "700" });
+  await Promise.all([f1.load(), f2.load()]); document.fonts.add(f1); document.fonts.add(f2);
+  FONT = { r: toB64(r), b: toB64(b) };
+  return FONT;
+}
+// 把排好版的 DOM 頁面逐一畫進 PDF（文字為真正的文字，線條為向量）
+function drawDom(pdf, root) {
+  const S = 210 / root.getBoundingClientRect().width, o = root.getBoundingClientRect();
+  const X = v => (v - o.left) * S, Y = v => (v - o.top) * S;
+  const col = c => { const m = c.match(/[\d.]+/g); return m ? { r: +m[0], g: +m[1], b: +m[2], a: m[3] === undefined ? 1 : +m[3] } : null; };
+  const els = [root, ...root.querySelectorAll("*")];
+  // 1) 背景與框線
+  for (const e of els) {
+    const cs = getComputedStyle(e); if (cs.display === "none" || cs.visibility === "hidden") continue;
+    const r = e.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    const round = parseFloat(cs.borderTopLeftRadius) >= Math.min(r.width, r.height) / 2 - 1;
+    const bg = col(cs.backgroundColor);
+    if (bg && bg.a > 0 && !(bg.r > 250 && bg.g > 250 && bg.b > 250)) {
+      pdf.setFillColor(bg.r, bg.g, bg.b);
+      if (round) pdf.ellipse(X(r.left + r.width / 2), Y(r.top + r.height / 2), r.width * S / 2, r.height * S / 2, "F");
+      else pdf.rect(X(r.left), Y(r.top), r.width * S, r.height * S, "F");
+    }
+    const sides = [["Top", r.left, r.top, r.right, r.top], ["Right", r.right, r.top, r.right, r.bottom], ["Bottom", r.left, r.bottom, r.right, r.bottom], ["Left", r.left, r.top, r.left, r.bottom]];
+    if (round) {
+      const w = parseFloat(cs.borderTopWidth), c = col(cs.borderTopColor);
+      if (w > 0 && cs.borderTopStyle !== "none" && c && c.a > 0) { pdf.setDrawColor(c.r, c.g, c.b); pdf.setLineWidth(w * S); pdf.ellipse(X(r.left + r.width / 2), Y(r.top + r.height / 2), (r.width - w) * S / 2, (r.height - w) * S / 2, "S"); }
+    } else for (const [sd, x1, y1, x2, y2] of sides) {
+      const w = parseFloat(cs["border" + sd + "Width"]), st = cs["border" + sd + "Style"], c = col(cs["border" + sd + "Color"]);
+      if (!(w > 0) || st === "none" || st === "hidden" || !c || c.a === 0) continue;
+      pdf.setDrawColor(c.r, c.g, c.b); pdf.setLineWidth(w * S);
+      if (st === "dashed") pdf.setLineDashPattern([w * 3 * S, w * 2 * S], 0);
+      const dx = sd === "Left" ? w / 2 : sd === "Right" ? -w / 2 : 0, dy = sd === "Top" ? w / 2 : sd === "Bottom" ? -w / 2 : 0;
+      pdf.line(X(x1 + dx), Y(y1 + dy), X(x2 + dx), Y(y2 + dy));
+      if (st === "dashed") pdf.setLineDashPattern([], 0);
+    }
+    if (e.matches("td.c.on .box")) { pdf.setFillColor(17, 17, 17); pdf.rect(X(r.left + 4), Y(r.top + 4), (r.width - 8) * S, (r.height - 8) * S, "F"); }
+    if (cs.textDecorationLine && cs.textDecorationLine.includes("underline")) {
+      const c = col(cs.color); pdf.setDrawColor(c.r, c.g, c.b); pdf.setLineWidth(0.6 * S);
+      for (const rr of e.getClientRects()) pdf.line(X(rr.left), Y(rr.bottom - 1.5), X(rr.right), Y(rr.bottom - 1.5));
+    }
+  }
+  // 2) 文字：逐字取位置，同一行連續的字合併成一段輸出
+  const ASC = 1151 / (1151 + 286);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  let n;
+  while ((n = walker.nextNode())) {
+    const t = n.nodeValue; if (!t.trim()) continue;
+    const cs = getComputedStyle(n.parentElement); if (cs.display === "none" || cs.visibility === "hidden") continue;
+    const fs = parseFloat(cs.fontSize), bold = parseInt(cs.fontWeight) >= 600, c = col(cs.color);
+    pdf.setFont("tcpdf", bold ? "bold" : "normal"); pdf.setFontSize(fs * S / 0.3528); pdf.setTextColor(c.r, c.g, c.b);
+    let run = "", rx = 0, rtop = null, rh = 0, lastRight = null;
+    const flush = () => { if (run.trim()) pdf.text(run, X(rx), Y(rtop + rh * ASC), { baseline: "alphabetic" }); run = ""; rtop = null; };
+    for (let i = 0; i < t.length; i++) {
+      range.setStart(n, i); range.setEnd(n, i + 1);
+      const rs = range.getClientRects(); if (!rs.length) continue;
+      const rr = rs[0]; if (!rr.width && t[i] !== " ") continue;
+      if (rtop === null || Math.abs(rr.top - rtop) > 1 || Math.abs(rr.left - lastRight) > 1.5) { flush(); rx = rr.left; rtop = rr.top; rh = rr.height; }
+      run += t[i]; lastRight = rr.right;
+    }
+    flush();
+  }
+}
+async function makePdfText() {
+  setStatus("載入字型中…（第一次約需數秒）");
+  const font = await loadFont();
+  setStatus("產生 PDF 中…");
+  const { jsPDF } = window.jspdf; const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  pdf.addFileToVFS("TC-Regular.ttf", font.r); pdf.addFont("TC-Regular.ttf", "tcpdf", "normal");
+  pdf.addFileToVFS("TC-Bold.ttf", font.b); pdf.addFont("TC-Bold.ttf", "tcpdf", "bold");
+  const holder = document.getElementById("render");
+  holder.classList.add("pdftext");
+  try {
+    const clone = buildClone();
+    holder.innerHTML = ""; holder.appendChild(clone);
+    for (let W = 794; W <= 1100; W += 22) { // 太高就加寬版面，讓整頁塞進 A4
+      holder.style.width = clone.style.width = W + "px";
+      if (clone.offsetHeight <= W * 297 / 210) break;
+    }
+    drawDom(pdf, clone);
+    holder.style.width = "";
+    if (document.getElementById("withScore").checked) {
+      const sp = buildScorePage(); holder.innerHTML = ""; holder.appendChild(sp);
+      pdf.addPage(); drawDom(pdf, sp);
+    }
+  } finally { holder.innerHTML = ""; holder.style.width = ""; holder.classList.remove("pdftext"); }
+  return pdf;
+}
+async function makePdf() {
+  try { return await makePdfText(); }
+  catch (e) { console.warn("文字版 PDF 失敗，改用圖片版", e); return await makePdfImage(); }
 }
 
 document.getElementById("dl").addEventListener("click", async () => {
