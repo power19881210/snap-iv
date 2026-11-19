@@ -85,6 +85,7 @@
   #render table { font-size:15px; margin-top:8px; }
   #render td { padding:2px 4px; line-height:1.35; }
   #render .notes { margin-top:16px; font-size:15px; line-height:1.85; }
+  .today-btn { font:inherit; font-size:13px; font-weight:600; font-family:system-ui,"Noto Sans TC",sans-serif; margin-left:8px; padding:3px 10px; border:1px solid #888; border-radius:999px; background:#f4f4f4; cursor:pointer; vertical-align:middle; }
   .print-val { display:inline-block; border-bottom:1.5px solid #222; font-weight:400; padding:0 4px; text-align:center; vertical-align:bottom; min-height:1.4em; }
 
   @media (max-width:600px) {
@@ -115,7 +116,7 @@
     <div class="meta">
       <div class="row-flex">
         <span>填表人姓名：<input class="line-input w-name" data-k="name"></span>
-        <span>填表時間：<input class="line-input w-y" data-k="y" inputmode="numeric">年<input class="line-input w-md" data-k="m" inputmode="numeric">月<input class="line-input w-md" data-k="d" inputmode="numeric">日</span>
+        <span>填表時間：<input class="line-input w-y" data-k="y" inputmode="numeric">年<input class="line-input w-md" data-k="m" inputmode="numeric">月<input class="line-input w-md" data-k="d" inputmode="numeric">日<button type="button" class="today-btn no-print" id="today">今天</button></span>
       </div>
       <div>與受試者的關係(請圈選)：<span class="rel" data-rel="parent">父/母親</span><span class="rel" data-rel="teacher">老師</span><span class="rel" data-rel="other">其他監護人</span>，請說明<input class="line-input w-other" data-k="other"></div>
       <div>請選擇一個代碼，最能表達在過去的一個星期中，您孩子的狀況…</div>
@@ -273,6 +274,12 @@ document.getElementById("clear").addEventListener("click", () => {
   renderResult();
 });
 
+document.getElementById("today").addEventListener("click", () => {
+  const t = new Date();
+  const set = (k, v) => document.querySelector(`#sheet input[data-k="${k}"]`).value = v;
+  set("y", t.getFullYear() - 1911); set("m", t.getMonth() + 1); set("d", t.getDate());
+});
+
 const statusEl = document.getElementById("status");
 function setStatus(s) { statusEl.textContent = s; }
 
@@ -330,6 +337,7 @@ async function makePdf() {
     span.textContent = src[idx].value || " ";
     inp.replaceWith(span);
   });
+  clone.querySelectorAll(".no-print").forEach(x => x.remove());
   clone.querySelectorAll("tr.missing").forEach(x => x.classList.remove("missing"));
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
