@@ -30,7 +30,7 @@
   @media (max-width:600px) { #sheet .stu { position:static; text-align:right; margin:-8px 0 10px; } }
   h1 { text-align:center; font-size:30px; margin:0 0 14px; letter-spacing:1px; color:#333; font-weight:700; font-family:system-ui,"Noto Sans TC",sans-serif; }
   .author { text-align:center; font-size:15px; line-height:1.75; color:#333; }
-  .meta { font-size:16px; font-weight:700; margin-top:10px; line-height:1.9; }
+  .meta { font-size:16px; font-weight:700; margin-top:10px; line-height:1.6; }
   .row-flex { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 16px; }
   .line-input { border:0; border-bottom:1.5px solid #222; font:inherit; background:transparent; padding:0 4px; outline:none; font-weight:700; border-radius:0; color:var(--ink); }
   .line-input:focus { background:#fff8d6; }
@@ -96,9 +96,10 @@
   #render .relrow .print-val { flex:1; min-width:0 !important; text-align:left; }
   #render h1 { font-size:28px; margin:0 0 6px; }
   #render .author { font-size:13.5px; line-height:1.5; }
-  #render .meta { margin-top:8px; font-size:17px; line-height:1.85; }
-  #render table { font-size:17px; margin-top:8px; }
-  #render th { font-size:14px; }
+  #render .meta { margin-top:6px; font-size:17px; line-height:1.5; }
+  #render table { font-size:18px; margin-top:6px; }
+  #render th { font-size:14px; width:40px; }
+  #render td.sc { width:40px; }
   #render td { padding:2px 4px; line-height:1.35; }
   #render .notes { margin-top:8px; font-size:12.5px; line-height:1.5; }
   .today-btn { font:inherit; font-size:13px; font-weight:600; font-family:system-ui,"Noto Sans TC",sans-serif; margin-left:8px; padding:3px 10px; border:1px solid #888; border-radius:999px; background:#f4f4f4; cursor:pointer; vertical-align:middle; }
@@ -153,7 +154,7 @@
         <span>填表人姓名：<input class="line-input w-name" data-k="name"></span>
         <span>填表時間：<input class="line-input w-y" data-k="y" inputmode="numeric">年<input class="line-input w-md" data-k="m" inputmode="numeric">月<input class="line-input w-md" data-k="d" inputmode="numeric">日<button type="button" class="today-btn no-print" id="today">今天</button></span>
       </div>
-      <div class="relrow"><span class="nw">與受試者的關係(請圈選)：</span><span class="rel" data-rel="parent">父/母親</span><span class="rel" data-rel="teacher">老師</span><span class="rel" data-rel="other">其他監護人</span><span class="nw">，請說明</span><input class="line-input w-other" data-k="other"></div>
+      <div class="relrow"><span class="nw">與受試者的關係(請圈選)：</span><span class="rel" data-rel="parent">父/母親</span><span class="rel" data-rel="teacher">老師</span><span class="rel" data-rel="other">其他／其他監護人</span><span class="nw">，請說明職稱</span><input class="line-input w-other" data-k="other"></div>
       <div>請選擇一個代碼，最能表達在過去的一個星期中，您孩子的狀況…</div>
     </div>
 
@@ -382,7 +383,7 @@ setStatus("");
 function buildScorePage() {
   const { r, T, A, B, done } = calc();
   const v = k => document.querySelector(`#sheet input[data-k="${k}"]`).value.trim();
-  const relTxt = { parent: "父/母親", teacher: "老師", other: "其他監護人" + (v("other") ? "（" + v("other") + "）" : "") }[rel] || "未圈選";
+  const relTxt = { parent: "父/母親", teacher: "老師", other: "其他／其他監護人" + (v("other") ? "（" + v("other") + "）" : "") }[rel] || "未圈選";
   const date = (v("y") || v("m") || v("d")) ? `${v("y")} 年 ${v("m")} 月 ${v("d")} 日` : "—";
   const who = `${grade ? GRADES[grade - 1] : "年級未選"}・${sex === null ? "性別未選" : sex === 0 ? "男" : "女"}`;
   const tRows = T.map(([nm, rg, s, n]) => { const L = twLevel(s, n); return `<tr><td class="l">${nm}（第 ${rg} 題）</td><td>${L.hit ? `<span class="hit">${s.sum}</span>` : "<b>" + s.sum + "</b>"}</td><td>${n ? "≥ " + n[2] : "—"}</td><td>${n ? tcell(n[0]) + " / " + tcell(n[1]) : "—"}</td><td>${L.hit ? `<span class="hit">${L.txt}</span>` : L.txt}</td></tr>`; }).join("");
@@ -481,7 +482,11 @@ function drawDom(pdf, root) {
     const sides = [["Top", r.left, r.top, r.right, r.top], ["Right", r.right, r.top, r.right, r.bottom], ["Bottom", r.left, r.bottom, r.right, r.bottom], ["Left", r.left, r.top, r.left, r.bottom]];
     if (round) {
       const w = parseFloat(cs.borderTopWidth), c = col(cs.borderTopColor);
-      if (w > 0 && cs.borderTopStyle !== "none" && c && c.a > 0) { pdf.setDrawColor(c.r, c.g, c.b); pdf.setLineWidth(w * S); pdf.ellipse(X(r.left + r.width / 2), Y(r.top + r.height / 2), (r.width - w) * S / 2, (r.height - w) * S / 2, "S"); }
+      if (w > 0 && cs.borderTopStyle !== "none" && c && c.a > 0) {
+        pdf.setDrawColor(c.r, c.g, c.b); pdf.setLineWidth(w * S);
+        if (r.width / r.height < 1.3) pdf.ellipse(X(r.left + r.width / 2), Y(r.top + r.height / 2), (r.width - w) * S / 2, (r.height - w) * S / 2, "S");
+        else { const rad = (r.height - w) * S / 2; pdf.roundedRect(X(r.left + w / 2), Y(r.top + w / 2), (r.width - w) * S, (r.height - w) * S, rad, rad, "S"); } // 長條形外框：畫圓角膠囊，不壓到字
+      }
     } else for (const [sd, x1, y1, x2, y2] of sides) {
       const w = parseFloat(cs["border" + sd + "Width"]), st = cs["border" + sd + "Style"], c = col(cs["border" + sd + "Color"]);
       if (!(w > 0) || st === "none" || st === "hidden" || !c || c.a === 0) continue;
@@ -546,7 +551,7 @@ async function makePdfText() {
       if (clone.offsetHeight <= W * 297 / 210) break;
     }
     const extra = W * 297 / 210 - clone.offsetHeight - 6, rows = clone.querySelectorAll("tbody tr");
-    if (extra > 0) { const add = Math.min(extra / rows.length / 2, 8); rows.forEach(tr => tr.querySelectorAll("td").forEach(td => { td.style.paddingTop = td.style.paddingBottom = (2 + add) + "px"; })); }
+    if (extra > 0) { const add = Math.min(extra / rows.length / 2, 16); rows.forEach(tr => tr.querySelectorAll("td").forEach(td => { td.style.paddingTop = td.style.paddingBottom = (2 + add) + "px"; })); }
     drawDom(pdf, clone);
     holder.style.width = "";
     if (document.getElementById("withScore").checked) {
@@ -571,7 +576,7 @@ document.getElementById("dl").addEventListener("click", async () => {
     const pdf = await makePdf();
     const q = k => document.querySelector(`#sheet input[data-k="${k}"]`).value.trim().replace(/[\\/:*?"<>|]/g, "");
     const nm = q("stu") || q("name");
-    const who = { parent: "父母", teacher: "老師", other: "其他監護人" }[rel] || (raterNow() === "teacher" ? "老師" : "父母");
+    const who = { parent: "父母", teacher: "老師", other: q("other") || "其他" }[rel] || (raterNow() === "teacher" ? "老師" : "父母");
     const t = new Date(), p2 = n => String(n).padStart(2, "0");
     const stamp = `${t.getFullYear() - 1911}${p2(t.getMonth() + 1)}${p2(t.getDate())}-${p2(t.getHours())}${p2(t.getMinutes())}${p2(t.getSeconds())}`;
     const filename = `SNAP-IV評量表_${nm || "未填姓名"}-${who}_${stamp}.pdf`;
