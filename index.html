@@ -83,7 +83,10 @@
   .scorepage td.l { text-align:left; }
   .scorepage .hit { display:inline-block; border:2px solid #111; padding:0 7px 4px; font-weight:700; line-height:1.25; }
   #render.pdftext .scorepage .hit { padding:2px 7px; }
-  .scorepage .foot { font-size:13px; line-height:1.8; color:#333; margin-top:22px; }
+  .scorepage .foot { font-size:13px; line-height:1.5; color:#333; margin-top:20px; }
+  .scorepage .foot .li { padding-left:16px; text-indent:-16px; margin-bottom:3px; }
+  .scorepage .foot .dot { display:inline-block; width:16px; text-indent:0; font-size:7px; vertical-align:2px; }
+  .scorepage .foot .note { margin-top:10px; padding:8px 10px; border:1px solid #999; line-height:1.55; }
   .hint { color:#666; font-size:12px; margin-top:8px; line-height:1.6; }
 
   /* off-screen render target for PDF */
@@ -401,7 +404,15 @@ function buildScorePage() {
     <table><tr><th>分區</th><th>題數</th><th>標準</th><th>結果</th></tr>${bRows}</table>
     <h3>方法 C｜Swanson 平均分切截點（${RLABEL[r]}，參考）</h3>
     <table><tr><th>分量表</th><th>總分</th><th>平均分</th><th>切截點</th><th>結果</th></tr>${aRows}</table>
-    <div class="foot">方法 A：分量表總分對照劉昱志、劉士愷、商志雍、林健禾、杜長齡、高淑芬（2006）台灣常模（台灣精神醫學 20(4):290–304），依年級、性別、填表人；總分 ≥ P95 為建議切截點，T>60／T>70 分別為高於平均 1／2 個標準差。方法 B：各分區勾選 2 或 3 分的題數，分別至少 6、6、4 題。方法 C：Swanson 暫定 5% 切截點（平均分）。${grade === 9 ? "<br><b>※ 台灣常模只到國二，國三無常模，本結果以國二常模參考，判讀請保守，建議以方法 B 為主要參考。</b>" : ""}${r === "teacher" && grade === 7 && sex === 1 ? "<br>* 原論文國一女生老師版 T60/T70 疑為誤植，未列出。" : ""}<br>本量表為篩檢工具，結果達標準代表建議由兒童心智科／身心科醫師進一步評估，不等於診斷。</div>`;
+    <div class="foot">
+      <div class="li"><span class="dot">●</span>方法 A：分量表總分對照劉昱志、劉士愷、商志雍、林健禾、杜長齡、高淑芬（2006）台灣常模（台灣精神醫學 20(4):290–304），依年級、性別、填表人；總分 ≥ P95 為建議切截點，T>60／T>70 分別為高於平均 1／2 個標準差。</div>
+      <div class="li"><span class="dot">●</span>方法 B：各分區勾選 2 或 3 分的題數，分別至少 6、6、4 題。</div>
+      <div class="li"><span class="dot">●</span>方法 C：Swanson 暫定 5% 切截點（平均分）。</div>
+      ${grade === 9 ? '<div class="li"><b><span class="dot">●</span>台灣常模只到國二，國三無常模，本結果以國二常模參考，判讀請保守，建議以方法 B 為主要參考。</b></div>' : ""}
+      ${r === "teacher" && grade === 7 && sex === 1 ? '<div class="li"><span class="dot">●</span>原論文國一女生老師版 T60/T70 疑為誤植，未列出。</div>' : ""}
+      <div class="li"><span class="dot">●</span>本量表為篩檢工具，結果達標準代表建議由兒童心智科／身心科醫師進一步評估，不等於診斷。</div>
+      <div class="note"><b>備註：</b>評估工具僅供參考。有時雖然未達顯著，但總計分數如果超過一定數值（17 分），參酌質性描述，仍可讓身心科醫師進行臨床診斷。評估結果是為了解決孩子本身的學習困擾、減少生活上的阻礙，讓孩子可以過得更好。</div>
+    </div>`;
   return d;
 }
 
