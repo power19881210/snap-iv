@@ -323,7 +323,8 @@ const tcell = v => v === null ? "—*" : v;
 
 function renderResult() {
   const { r, T, A, B, done } = calc();
-  const tot = ans.reduce((a, x) => a + (x ?? 0), 0), totHit = tot > 17;
+  const tot = ans.slice(0, 18).reduce((a, x) => a + (x ?? 0), 0), totDone = ans.slice(0, 18).every(x => x !== null), totHit = tot > 17;
+  const totLv = tot >= 40 ? "重度" : tot >= 28 ? "中度" : tot >= 18 ? "輕度" : (totDone ? "無臨床意義" : "未填完");
   const tRows = T.map(([nm, rg, s, n]) => {
     const L = twLevel(s, n);
     const res = L.na ? `<span style="color:#999">${L.txt}</span>` : L.hit ? `<span class="flag">${L.txt}</span>` : `<span class="ok">${L.txt}</span>`;
@@ -347,7 +348,7 @@ function renderResult() {
      <div class="ctl">填表人：<span class="seg" data-g="r"><button data-v="parent" class="${r === "parent" ? "on" : ""}">父母</button><button data-v="teacher" class="${r === "teacher" ? "on" : ""}">老師</button></span></div>
      <div class="ctl">孩子性別：<span class="seg" data-g="s"><button data-v="0" class="${sex === 0 ? "on" : ""}">男</button><button data-v="1" class="${sex === 1 ? "on" : ""}">女</button></span></div>
      <div class="ctl">孩子年級：<select id="gradeSel"><option value="">請選擇</option>${GRADES.map((g, i) => `<option value="${i + 1}" ${grade === i + 1 ? "selected" : ""}>${g}</option>`).join("")}</select></div>
-     <div style="margin-top:10px">全量表總分（26 題加總）：<b style="font-size:18px">${tot}</b> / 78　${totHit ? '<span class="flag">超過 17 分，請參酌質性描述</span>' : ""}</div>
+     <div style="margin-top:10px">注意力＋過動總分（第 1–18 題）：<b style="font-size:18px">${tot}</b> / 54　嚴重度：${totHit ? `<span class="flag">${totLv}</span>` : totLv}</div>
      <h3>方法 A｜台灣常模（分量表總分）</h3>
      <table><tr><th>分量表</th><th>總分</th><th>P95</th><th>T60 / T70</th><th>結果</th></tr>${tRows}</table>
      ${grade === 9 ? '<div class="hint" style="color:#b03a2e">⚠️ 台灣常模只到國二，國三沒有常模，目前以國二常模對照，判讀請保守，建議以方法 B 為主要參考。</div>' : ""}
@@ -395,7 +396,8 @@ setStatus("");
 
 function buildScorePage() {
   const { r, T, A, B, done } = calc();
-  const tot = ans.reduce((a, x) => a + (x ?? 0), 0), totHit = tot > 17;
+  const tot = ans.slice(0, 18).reduce((a, x) => a + (x ?? 0), 0), totDone = ans.slice(0, 18).every(x => x !== null), totHit = tot > 17;
+  const totLv = tot >= 40 ? "重度" : tot >= 28 ? "中度" : tot >= 18 ? "輕度" : (totDone ? "無臨床意義" : "未填完");
   const v = k => document.querySelector(`#sheet input[data-k="${k}"]`).value.trim();
   const relTxt = { parent: "父/母親", teacher: "老師", other: "其他／其他監護人" + (v("other") ? "（" + v("other") + "）" : "") }[rel] || "未圈選";
   const date = (v("y") || v("m") || v("d")) ? `${v("y")} 年 ${v("m")} 月 ${v("d")} 日` : "—";
@@ -407,8 +409,9 @@ function buildScorePage() {
   d.className = "scorepage";
   d.innerHTML = `<h2>SNAP-IV 計分結果</h2>
     <div class="sub">填表人：${v("name") || "—"}　關係：${relTxt}　填表時間：${date}<br>受評孩子：${v("stu") ? v("stu") + "・" : ""}${who}　已填 ${done}/26 題</div>
-    <h3>全量表總分（26 題加總，0–78）</h3>
-    <div style="font-size:15px">總分：${totHit ? `<span class="hit">${tot}</span>` : "<b>" + tot + "</b>"} 分${totHit ? "（超過 17 分，請參酌質性描述，見下方備註）" : ""}</div>
+    <h3>注意力＋過動總分（第 1–18 題，0–54）</h3>
+    <table><tr><th>總分</th><th>嚴重度分級</th><th>分級標準</th></tr>
+    <tr><td>${totHit ? `<span class="hit">${tot}</span>` : "<b>" + tot + "</b>"}</td><td>${totHit ? `<span class="hit">${totLv}</span>` : totLv}</td><td class="l">17 分以下無臨床意義；18–27 輕度；28–39 中度；40 分以上重度</td></tr></table>
     <h3>方法 A｜台灣常模（${RLABEL[r]}，分量表總分）</h3>
     <table><tr><th>分量表</th><th>總分</th><th>P95</th><th>T60 / T70</th><th>結果</th></tr>${tRows}</table>
     <h3>方法 B｜勾選「還算不少」或「非常的多」的題數</h3>
@@ -416,13 +419,14 @@ function buildScorePage() {
     <h3>方法 C｜Swanson 平均分切截點（${RLABEL[r]}，參考）</h3>
     <table><tr><th>分量表</th><th>總分</th><th>平均分</th><th>切截點</th><th>結果</th></tr>${aRows}</table>
     <div class="foot">
+      <div class="li"><span class="dot">●</span>注意力＋過動總分：第 1–18 題加總（0–54），嚴重度分級參考加拿大 ADHD 資源聯盟（CADDRA）SNAP-IV 計分指引。</div>
       <div class="li"><span class="dot">●</span>方法 A：分量表總分對照劉昱志、劉士愷、商志雍、林健禾、杜長齡、高淑芬（2006）台灣常模（台灣精神醫學 20(4):290–304），依年級、性別、填表人；總分 ≥ P95 為建議切截點，T>60／T>70 分別為高於平均 1／2 個標準差。</div>
       <div class="li"><span class="dot">●</span>方法 B：各分區勾選 2 或 3 分的題數，分別至少 6、6、4 題。</div>
       <div class="li"><span class="dot">●</span>方法 C：Swanson 暫定 5% 切截點（平均分）。</div>
       ${grade === 9 ? '<div class="li"><b><span class="dot">●</span>台灣常模只到國二，國三無常模，本結果以國二常模參考，判讀請保守，建議以方法 B 為主要參考。</b></div>' : ""}
       ${r === "teacher" && grade === 7 && sex === 1 ? '<div class="li"><span class="dot">●</span>原論文國一女生老師版 T60/T70 疑為誤植，未列出。</div>' : ""}
       <div class="li"><span class="dot">●</span>本量表為篩檢工具，結果達標準代表建議由兒童心智科／身心科醫師進一步評估，不等於診斷。</div>
-      <div class="note"><b>備註：</b>評估工具僅供參考。有時雖然未達顯著，但 26 題全部加總的總分如果超過一定數值（17 分），參酌質性描述，仍可讓身心科醫師進行臨床診斷。評估結果是為了解決孩子本身的學習困擾、減少生活上的阻礙，讓孩子可以過得更好。</div>
+      <div class="note"><b>備註：</b>評估工具僅供參考。有時各方法雖然未達顯著，但注意力＋過動總分（第 1–18 題）如果超過 17 分（達輕度以上），參酌導師、家長的質性描述，仍可提供身心科醫師作為臨床診斷的參考。評估結果是為了解決孩子本身的學習困擾、減少生活上的阻礙，讓孩子可以過得更好。</div>
     </div>`;
   return d;
 }
