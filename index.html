@@ -83,6 +83,12 @@
   .scorepage td.l { text-align:left; }
   .scorepage .hit { display:inline-block; border:2px solid #111; padding:0 7px 4px; font-weight:700; line-height:1.25; }
   #render.pdftext .scorepage .hit { padding:2px 7px; }
+  #render .scorepage { padding:36px 48px; }
+  #render .scorepage h2 { margin-bottom:4px; }
+  #render .scorepage .sub { margin-bottom:12px; }
+  #render .scorepage h3 { margin:14px 0 6px; font-size:16px; }
+  #render .scorepage th, #render .scorepage td { padding:4px 8px; font-size:14.5px; }
+  #render .scorepage td.l { width:34%; white-space:nowrap; }
   .scorepage .foot { font-size:13px; line-height:1.5; color:#333; margin-top:20px; }
   .scorepage .foot .li { padding-left:16px; text-indent:-16px; margin-bottom:3px; }
   .scorepage .foot .dot { display:inline-block; width:16px; text-indent:0; font-size:7px; vertical-align:2px; }
@@ -317,6 +323,7 @@ const tcell = v => v === null ? "—*" : v;
 
 function renderResult() {
   const { r, T, A, B, done } = calc();
+  const tot = ans.reduce((a, x) => a + (x ?? 0), 0), totHit = tot > 17;
   const tRows = T.map(([nm, rg, s, n]) => {
     const L = twLevel(s, n);
     const res = L.na ? `<span style="color:#999">${L.txt}</span>` : L.hit ? `<span class="flag">${L.txt}</span>` : `<span class="ok">${L.txt}</span>`;
@@ -340,6 +347,7 @@ function renderResult() {
      <div class="ctl">填表人：<span class="seg" data-g="r"><button data-v="parent" class="${r === "parent" ? "on" : ""}">父母</button><button data-v="teacher" class="${r === "teacher" ? "on" : ""}">老師</button></span></div>
      <div class="ctl">孩子性別：<span class="seg" data-g="s"><button data-v="0" class="${sex === 0 ? "on" : ""}">男</button><button data-v="1" class="${sex === 1 ? "on" : ""}">女</button></span></div>
      <div class="ctl">孩子年級：<select id="gradeSel"><option value="">請選擇</option>${GRADES.map((g, i) => `<option value="${i + 1}" ${grade === i + 1 ? "selected" : ""}>${g}</option>`).join("")}</select></div>
+     <div style="margin-top:10px">全量表總分（26 題加總）：<b style="font-size:18px">${tot}</b> / 78　${totHit ? '<span class="flag">超過 17 分，請參酌質性描述</span>' : ""}</div>
      <h3>方法 A｜台灣常模（分量表總分）</h3>
      <table><tr><th>分量表</th><th>總分</th><th>P95</th><th>T60 / T70</th><th>結果</th></tr>${tRows}</table>
      ${grade === 9 ? '<div class="hint" style="color:#b03a2e">⚠️ 台灣常模只到國二，國三沒有常模，目前以國二常模對照，判讀請保守，建議以方法 B 為主要參考。</div>' : ""}
@@ -387,6 +395,7 @@ setStatus("");
 
 function buildScorePage() {
   const { r, T, A, B, done } = calc();
+  const tot = ans.reduce((a, x) => a + (x ?? 0), 0), totHit = tot > 17;
   const v = k => document.querySelector(`#sheet input[data-k="${k}"]`).value.trim();
   const relTxt = { parent: "父/母親", teacher: "老師", other: "其他／其他監護人" + (v("other") ? "（" + v("other") + "）" : "") }[rel] || "未圈選";
   const date = (v("y") || v("m") || v("d")) ? `${v("y")} 年 ${v("m")} 月 ${v("d")} 日` : "—";
@@ -398,6 +407,8 @@ function buildScorePage() {
   d.className = "scorepage";
   d.innerHTML = `<h2>SNAP-IV 計分結果</h2>
     <div class="sub">填表人：${v("name") || "—"}　關係：${relTxt}　填表時間：${date}<br>受評孩子：${v("stu") ? v("stu") + "・" : ""}${who}　已填 ${done}/26 題</div>
+    <h3>全量表總分（26 題加總，0–78）</h3>
+    <div style="font-size:15px">總分：${totHit ? `<span class="hit">${tot}</span>` : "<b>" + tot + "</b>"} 分${totHit ? "（超過 17 分，請參酌質性描述，見下方備註）" : ""}</div>
     <h3>方法 A｜台灣常模（${RLABEL[r]}，分量表總分）</h3>
     <table><tr><th>分量表</th><th>總分</th><th>P95</th><th>T60 / T70</th><th>結果</th></tr>${tRows}</table>
     <h3>方法 B｜勾選「還算不少」或「非常的多」的題數</h3>
@@ -411,7 +422,7 @@ function buildScorePage() {
       ${grade === 9 ? '<div class="li"><b><span class="dot">●</span>台灣常模只到國二，國三無常模，本結果以國二常模參考，判讀請保守，建議以方法 B 為主要參考。</b></div>' : ""}
       ${r === "teacher" && grade === 7 && sex === 1 ? '<div class="li"><span class="dot">●</span>原論文國一女生老師版 T60/T70 疑為誤植，未列出。</div>' : ""}
       <div class="li"><span class="dot">●</span>本量表為篩檢工具，結果達標準代表建議由兒童心智科／身心科醫師進一步評估，不等於診斷。</div>
-      <div class="note"><b>備註：</b>評估工具僅供參考。有時雖然未達顯著，但總計分數如果超過一定數值（17 分），參酌質性描述，仍可讓身心科醫師進行臨床診斷。評估結果是為了解決孩子本身的學習困擾、減少生活上的阻礙，讓孩子可以過得更好。</div>
+      <div class="note"><b>備註：</b>評估工具僅供參考。有時雖然未達顯著，但 26 題全部加總的總分如果超過一定數值（17 分），參酌質性描述，仍可讓身心科醫師進行臨床診斷。評估結果是為了解決孩子本身的學習困擾、減少生活上的阻礙，讓孩子可以過得更好。</div>
     </div>`;
   return d;
 }
