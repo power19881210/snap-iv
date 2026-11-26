@@ -83,16 +83,17 @@
   .scorepage td.l { text-align:left; }
   .scorepage .hit { display:inline-block; border:2px solid #111; padding:0 7px 4px; font-weight:700; line-height:1.25; }
   #render.pdftext .scorepage .hit { padding:2px 7px; }
-  #render .scorepage { padding:36px 48px; }
+  #render .scorepage { padding:28px 46px; }
   #render .scorepage h2 { margin-bottom:4px; }
   #render .scorepage .sub { margin-bottom:12px; }
-  #render .scorepage h3 { margin:14px 0 6px; font-size:16px; }
-  #render .scorepage th, #render .scorepage td { padding:4px 8px; font-size:14.5px; }
+  #render .scorepage h3 { margin:11px 0 5px; font-size:16px; }
+  #render .scorepage th, #render .scorepage td { padding:3px 8px; font-size:14px; }
   #render .scorepage td.l { width:34%; white-space:nowrap; }
-  .scorepage .foot { font-size:13px; line-height:1.5; color:#333; margin-top:20px; }
+  .scorepage .foot { font-size:13px; line-height:1.45; color:#333; margin-top:14px; }
   .scorepage .foot .li { padding-left:16px; text-indent:-16px; margin-bottom:3px; }
   .scorepage .foot .dot { display:inline-block; width:16px; text-indent:0; font-size:7px; vertical-align:2px; }
   .scorepage .foot .note { margin-top:10px; padding:8px 10px; border:1px solid #999; line-height:1.55; }
+  .scorepage .foot .note .li { margin-top:3px; }
   .hint { color:#666; font-size:12px; margin-top:8px; line-height:1.6; }
 
   /* off-screen render target for PDF */
@@ -177,10 +178,7 @@
       <tbody id="tb2"></tbody>
     </table>
 
-    <div class="notes">
-      以上題目分 3 大區，第 1~9 題為注意力不足部分、第 10~18 題為過動、衝動部分、第 19~26 為反抗對立行為。<br>
-      <b>這 3 區分別至少要有 6、6、4 題以上勾選「還算不少」，才是醫師認為需要進行其他進一步篩檢的標準。</b>
-    </div>
+    <div class="notes"><div>以上題目分 3 大區，第 1~9 題為注意力不足部分、第 10~18 題為過動、衝動部分、第 19~26 為反抗對立行為。</div><div>這 3 區分別至少要有 6、6、4 題以上勾選「還算不少」，才是醫師認為需要進行其他進一步篩檢的標準。</div></div>
   </div>
 
   <div class="result" id="result"></div>
@@ -426,7 +424,11 @@ function buildScorePage() {
       ${grade === 9 ? '<div class="li"><b><span class="dot">●</span>台灣常模只到國二，國三無常模，本結果以國二常模參考，判讀請保守，建議以方法 B 為主要參考。</b></div>' : ""}
       ${r === "teacher" && grade === 7 && sex === 1 ? '<div class="li"><span class="dot">●</span>原論文國一女生老師版 T60/T70 疑為誤植，未列出。</div>' : ""}
       <div class="li"><span class="dot">●</span>本量表為篩檢工具，結果達標準代表建議由兒童心智科／身心科醫師進一步評估，不等於診斷。</div>
-      <div class="note"><b>備註：</b>評估工具僅供參考。有時各方法雖然未達顯著，但注意力＋過動總分（第 1–18 題）如果超過 17 分（達輕度以上），參酌導師、家長的質性描述，仍可提供身心科醫師作為臨床診斷的參考。評估結果是為了解決孩子本身的學習困擾、減少生活上的阻礙，讓孩子可以過得更好。</div>
+      <div class="note"><b>備註：</b>
+        <div class="li"><span class="dot">●</span>評估工具僅供參考。</div>
+        <div class="li"><span class="dot">●</span>有時各方法雖然未達顯著，但注意力＋過動總分（第 1–18 題）如果超過 17 分（達輕度以上），參酌導師、家長的質性描述，仍可提供身心科醫師作為臨床診斷的參考。</div>
+        <div class="li"><span class="dot">●</span>評估結果是為了解決孩子本身的學習困擾、減少生活上的阻礙，讓孩子可以過得更好。</div>
+      </div>
     </div>`;
   return d;
 }
